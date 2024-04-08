@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const  cors = require('cors')
+
 const app = express()
 const port = 3030;
 
@@ -11,8 +12,13 @@ app.use(require('body-parser').urlencoded({ extended: false }));
 const reviews_data = JSON.parse(fs.readFileSync("reviews.json", 'utf8'));
 const dealerships_data = JSON.parse(fs.readFileSync("dealerships.json", 'utf8'));
 
-mongoose.connect("mongodb://mongo_db:27017/",{'dbName':'dealershipsDB'});
-
+mongoose.connect('mongodb://db_container:27017/database', {useNewUrlParser: true})
+  .then(() => {
+    console.log('Connected to MongoDB')
+  })
+  .catch(err => {
+    console.error('Error connecting to MongoDB', err)
+  });
 
 const Reviews = require('./review');
 
@@ -59,48 +65,48 @@ app.get('/fetchReviews/dealer/:id', async (req, res) => {
 // Express route to fetch all dealerships
 app.get('/fetchDealers', async (req, res) => {
     try {
-        const documents = await Dealerships.find();
-        res.json(documents);
-      } catch (error) {
-        res.status(500).json({ error: 'Error fetching documents' });
-      }
-});
-
-// Express route to fetch Dealers by a particular state
-app.get('/fetchDealers/:state', async (req, res) => {
-//Write your code here
-try {
-    const documents = await Dealerships.find({state: req.params.state});
-    res.json(documents);
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching documents' });
-  }
-});
-
-// Express route to fetch dealer by a particular id
-app.get('/fetchDealer/:id', async (req, res) => {
-//Write your code here
-try {
+      const documents = await Dealerships.find();
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: 'Error fetching documents' });
+    }
+  });
   
-    const id = Number(req.params.id);
-
-    if (isNaN(id)) {
-      return res.status(400).json({error: 'Invalid dealer id'}); 
+  // Express route to fetch Dealers by a particular state
+  app.get('/fetchDealers/:state', async (req, res) => {
+    try {
+      const documents = await Dealerships.find({state: req.params.state});
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: 'Error fetching documents' });
     }
+  });
+  
+// Fetch dealer by id route
+app.get('/fetchDealer/:id', async (req, res) => {
 
-    const dealer = await Dealerships.findOne({id});
-    
-    if (!dealer) {
-      return res.status(404).json({error: 'Dealer not found'});
+    try {
+  
+      const id = Number(req.params.id);
+  
+      if (isNaN(id)) {
+        return res.status(400).json({error: 'Invalid dealer id'}); 
+      }
+  
+      const dealer = await Dealerships.findOne({id});
+      
+      if (!dealer) {
+        return res.status(404).json({error: 'Dealer not found'});
+      }
+  
+      res.json(dealer);
+  
+    } catch (error) {
+      res.status(500).json({error: 'Error fetching dealer'});
     }
-
-    res.json(dealer);
-
-  } catch (error) {
-    res.status(500).json({error: 'Error fetching dealer'});
-  }
-});
-
+  
+  });
+  
 //Express route to insert review
 app.post('/insert_review', express.raw({ type: '*/*' }), async (req, res) => {
   data = JSON.parse(req.body);
