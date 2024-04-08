@@ -95,3 +95,76 @@ def registration(request):
 # Create a `add_review` view to submit a review
 # def add_review(request):
 # ...
+
+def get_dealerships(request, state="All"):
+    if(state == "All"):
+        endpoint = "/fetchDealers"
+    else:
+        endpoint = "/fetchDealers/"+state
+    dealerships = get_request(endpoint)
+    return JsonResponse({"status":200,"dealers":dealerships})
+
+def get_dealer_reviews(request, dealer_id):
+    # if dealer id has been provided
+    if(dealer_id):
+        endpoint = "/fetchReviews/dealer/"+str(dealer_id)
+        reviews = get_request(endpoint)
+        for review_detail in reviews:
+            response = analyze_review_sentiments(review_detail['review'])
+            print(response)
+            review_detail['sentiment'] = response['sentiment']
+        return JsonResponse({"status":200,"reviews":reviews})
+    else:
+        return JsonResponse({"status":400,"message":"Bad Request"})
+
+def get_dealer_details(request, dealer_id):
+    if(dealer_id):
+        endpoint = "/fetchDealer/"+str(dealer_id)
+        dealership = get_request(endpoint)
+        return JsonResponse({"status":200,"dealer":dealership})
+    else:
+        return JsonResponse({"status":400,"message":"Bad Request"})
+
+def get_dealers(request):
+    dealers = Dealership.objects.all()
+    context = {"dealers": dealers}
+    return render(request, 'dealers.html', context)
+# def get_dealers(request):
+#     dealers = Dealership.objects.all()
+#     dealers_list = [{"name": dealer.name, "location": dealer.location} for dealer in dealers]
+#     return JsonResponse(dealers_list, safe=False)
+
+def add_review(request):
+    if(request.user.is_anonymous == False):
+        data = json.loads(request.body)
+        try:
+            response = post_review(data)
+            return JsonResponse({"status":200})
+        except:
+            return JsonResponse({"status":401,"message":"Error in posting review"})
+    else:
+        return JsonResponse({"status":403,"message":"Unauthorized"})
+
+def populate_database(request):
+    if request.method == 'POST':
+        try:
+            # Load JSON data from request body
+            data = json.loads(request.body)
+            # Extract car makes and models from data
+            car_makes = data.get('car_makes')
+            car_models = data.get('car_models')
+
+            # Create the car makes and models in the database
+            for make in car_makes:
+                car_make, created = CarMake.objects.get_or_create(name=make)
+
+                for model in car_models[make]:
+                    car_model, created = CarModel.objects.get_or_create(name=model, car_make=car_make)
+
+            return JsonResponse({"message": "Database populated successfully"})
+        except json.JSONDecodeError:
+            # If error, return a response with status 400 (Bad Request)
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    else:
+        # If request method is not POST, return a response with status 405 (Method Not Allowed)
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
