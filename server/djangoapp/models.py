@@ -4,7 +4,9 @@ from django.utils.timezone import now
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 # Local app imports
-# from .models import CarMake 
+
+
+# Registering models with their respective admins
 
 # Create your models here.
 
