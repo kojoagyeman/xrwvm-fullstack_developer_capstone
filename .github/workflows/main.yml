@@ -45,8 +45,7 @@ jobs:
         uses: actions/setup-node@v3
        
         with:
-          node-version: 14
-          
+          node-version: 14  
       - name: Install JSHint
         run: npm install jshint --global
         
